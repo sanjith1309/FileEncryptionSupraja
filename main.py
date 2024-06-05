@@ -6,6 +6,8 @@ import base64
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import tkinter as tk
+from tkinter import messagebox, filedialog
 import os
 
 def generate_key():
@@ -22,13 +24,15 @@ def derive_key_from_passphrase(passphrase: str, salt: bytes) -> bytes:
     key = base64.urlsafe_b64encode(kdf.derive(passphrase.encode()))
     return key
 
-def encrypt_file_in_place(key, filename,salt,passphrase):
+def encrypt_file_in_place(key, filename):
+    passphrase = "If_you_are_reading_this_then_this_is_the_key_for_the_key"
+    salt = b'\x12\x34\x56\x78\x90\xab\xcd\xef\xfe\xdc\xba\x98\x76\x54\x32\x10'
     cipher = Fernet(key)
     with open(filename, 'rb') as file:
         plaintext = file.read()
     ciphertext = cipher.encrypt(plaintext)
     with open(filename, 'wb') as file:
-        key = encrypt_the_key(key,salt,passphrase)
+        key = encrypt_the_key(key)
         file.write(key)  # Write the encryption key to the file
         file.write(b'\n')
         file.write(b'\n')
@@ -50,7 +54,7 @@ def decrypt_file_in_place(filename,user_entered_key):
     custom_key = derive_key_from_passphrase(passphrase, fixed_salt)
     with open(filename, 'rb') as file:
         content = file.read()
-
+    print(content)
     encrypted_key, ciphertext = content.split(b'\n\n\n', 1)
 
     decrypted_key = decrypt_the_key(encrypted_key, custom_key)
@@ -69,49 +73,93 @@ def decrypt_the_key(encrypted_key, custom_key):
     decrypted_key = cipher.decrypt(encrypted_key)
     return decrypted_key
 
+def browse_file(label):
+    filename = filedialog.askopenfilename()
+    label.config(text=filename)
+    return filename
 
-def send_email(sender_email, sender_password, recipient_email, filename,key):
-    msg = MIMEMultipart()
-    msg['From'] = sender_email
-    msg['To'] = recipient_email
-    msg['Subject'] = "Decryption Key for the File"
-    message= "Hi this is the decrption mail for the file "+filename+"\n\n"+"Key: "+str(key)
-    msg.attach(MIMEText(message, 'plain'))
 
-    # Create SMTP session
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.starttls()
-    server.login(sender_email, sender_password)
+def encrypt():
+    key = generate_key()
+    filename = os.path.normpath(file_path.cget("text"))  # Normalize the file path
+    recipient_email = recipient_email_entry.get()
+    # send_email("your_email@gmail.com", "your_password", recipient_email, filename, key)
+    # messagebox.showinfo("Success", "File encrypted and key sent to email successfully.")
+    print(filename,key)
+    encrypt_file_in_place(key, filename)
+    messagebox.showinfo("Success", "File encrypted and saved successfully.")
+def decrypt():
+    filename = file_path.cget("text")
+    key = key_entry.get()
+    decrypt_file_in_place(filename, key)
+    messagebox.showinfo("Success", "File decrypted and saved successfully.")
+root = tk.Tk()
+root.title("File Encryption Tool")
 
-    # Send the email
-    text = msg.as_string()
-    server.sendmail(sender_email, recipient_email, text)
-    server.quit()
+frame = tk.Frame(root)
+frame.pack(padx=100, pady=100)
 
-while(True):
-    print("Enter the options:")
-    print("1.Encrypt the text file")
-    print("2.Decrypt the text file")
-    print("3.exit")
-    print("enter the option:")
-    user_input =int(input())
-    if user_input==1:
-        key = generate_key()
-        print("Enter the File path:")
-        filename = input().strip()
-        print("the original key:",key)
-        print("Enter the valid Email address:")
-        recipient_email= input().strip()
-        send_email("waterresq@gmail.com","waterresq@2023", recipient_email,filename,key)
-        print("The Encryption key has been sent to the email.")
-        encrypt_file_in_place(key, filename,salt,passphrase)
-        print("File encrypted and saved successfully.\n")
-    elif user_input==2:
-        print("Enter the File path:")
-        filename= input().strip()
-        print("Enter the Decryption key")
-        user_entered_key = input().strip()
-        decrypt_file_in_place(filename, passphrase, salt,user_entered_key)
-        print("File decrypted and saved successfully.\n")
-    else:
-        print("You selected to exit. BYE BYE!\n")
+# Load the image
+image = tk.PhotoImage(file='images/image.png')  # Replace "image.png" with the path to your image file
+
+# Create a label to display the image
+image_label = tk.Label(frame, image=image)
+image_label.grid(row=0, column=0, columnspan=3, padx=5, pady=5)
+
+file_label = tk.Label(frame, text="Select a file:")
+file_label.grid(row=1, column=0, padx=5, pady=5)
+
+file_path = tk.Label(frame, text="")
+file_path.grid(row=1, column=1, padx=5, pady=5)
+
+browse_button = tk.Button(frame, text="Browse", command=lambda: browse_file(file_path))
+browse_button.grid(row=1, column=2, padx=5, pady=5)
+
+recipient_email_label = tk.Label(frame, text="Enter the Email to send the Key:")
+recipient_email_label.grid(row=2, column=0, padx=5, pady=5)
+
+recipient_email_entry = tk.Entry(frame)
+recipient_email_entry.grid(row=2, column=1, padx=5, pady=5)
+
+encrypt_button = tk.Button(frame, text="Encrypt File", command=encrypt)
+encrypt_button.grid(row=3, column=0, padx=5, pady=5)
+
+key_label = tk.Label(frame, text="Decryption Key:")
+key_label.grid(row=4, column=0, padx=5, pady=5)
+
+key_entry = tk.Entry(frame)
+key_entry.grid(row=4, column=1, padx=5, pady=5)
+
+decrypt_button = tk.Button(frame, text="Decrypt File", command=decrypt)
+decrypt_button.grid(row=5, column=0, padx=5, pady=5)
+
+root.mainloop()
+
+#
+# while(True):
+#     print("Enter the options:")
+#     print("1.Encrypt the text file")
+#     print("2.Decrypt the text file")
+#     print("3.exit")
+#     print("enter the option:")
+#     user_input =int(input())
+#     if user_input==1:
+#         key = generate_key()
+#         print("Enter the File path:")
+#         filename = input().strip()
+#         print("the original key:",key)
+#         print("Enter the valid Email address:")
+#         recipient_email= input().strip()
+#         # send_email("waterresq@gmail.com","waterresq@2023", recipient_email,filename,key)
+#         print("The Encryption key has been sent to the email.")
+#         encrypt_file_in_place(key, filename)
+#         print("File encrypted and saved successfully.\n")
+#     elif user_input==2:
+#         print("Enter the File path:")
+#         filename= input().strip()
+#         print("Enter the Decryption key")
+#         user_entered_key = input().strip()
+#         decrypt_file_in_place(filename,user_entered_key)
+#         print("File decrypted and saved successfully.\n")
+#     else:
+#         print("You selected to exit. BYE BYE!\n")
