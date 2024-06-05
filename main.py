@@ -59,10 +59,8 @@ def decrypt_file_in_place(filename,user_entered_key):
 
     decrypted_key = decrypt_the_key(encrypted_key, custom_key)
     if user_entered_key.strip() != str(decrypted_key.strip()):
-        print("The decryption key you entered is not correct key for this file")
-        print("Enter the correct one!")
-        print("Good bye!!!")
-        return
+        messagebox.showinfo("Error!!", "Wrong Encryption Key")
+        exit()
 
     cipher = Fernet(decrypted_key)
     plaintext = cipher.decrypt(ciphertext)
@@ -84,10 +82,9 @@ def encrypt():
     filename = os.path.normpath(file_path.cget("text"))  # Normalize the file path
     recipient_email = recipient_email_entry.get()
     # send_email("your_email@gmail.com", "your_password", recipient_email, filename, key)
-    # messagebox.showinfo("Success", "File encrypted and key sent to email successfully.")
     print(filename,key)
     encrypt_file_in_place(key, filename)
-    messagebox.showinfo("Success", "File encrypted and saved successfully.")
+    messagebox.showinfo("Success", "File encrypted and saved successfully. key sent to email successfully.")
 def decrypt():
     filename = file_path.cget("text")
     key = key_entry.get()
