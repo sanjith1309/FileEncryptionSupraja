@@ -9,6 +9,9 @@ from email.mime.multipart import MIMEMultipart
 import tkinter as tk
 from tkinter import messagebox, filedialog
 import os
+import ssl
+from email.message import EmailMessage
+
 
 def generate_key():
     return Fernet.generate_key()
@@ -81,10 +84,34 @@ def encrypt():
     key = generate_key()
     filename = os.path.normpath(file_path.cget("text"))  # Normalize the file path
     recipient_email = recipient_email_entry.get()
-    # send_email("your_email@gmail.com", "your_password", recipient_email, filename, key)
+    send_mail("waterresq@gmail.com","jdke kvxx upxv ezhr", recipient_email,key.decode())
     print(filename,key)
     encrypt_file_in_place(key, filename)
     messagebox.showinfo("Success", "File encrypted and saved successfully. key sent to email successfully.")
+def send_mail(sender_mail,sender_password,recipient_email,key):
+    subject='Decryption Key for the File'
+    body = f"""
+        Hi,
+
+        This is the decryption key for your file:
+
+        b'{key}'
+
+        Regards,
+        Your Security Team
+        """
+    mail=EmailMessage()
+    mail['From']=sender_mail
+    mail['To']=recipient_email
+    mail['subject']=subject
+    mail.set_content(body)
+    # mail.set_content(key)
+    context=ssl.create_default_context()
+    with smtplib.SMTP_SSL('smtp.gmail.com',465,context=context) as smtp:
+        smtp.login(sender_mail,sender_password)
+        smtp.send_message(mail)
+        # smpt.sendmail(sender_mail,recipient_email,mail.as_string())
+
 def decrypt():
     filename = file_path.cget("text")
     key = key_entry.get()
